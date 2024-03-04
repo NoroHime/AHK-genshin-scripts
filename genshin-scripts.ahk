@@ -5,11 +5,6 @@
  * 	技术支持：
  * 		- ChatGPT，大部分功能由持续询问ChatGPT 3.5 Turbo实现，但有些问题过于复杂最终还是去看了文档
  * 		- Google，拜托，哪有人不用这个的
- *  todo:
- *  - 添加功能：映射Ctrl+数字键开大并切换f
- * 	- F与V合并为同一个个按
- * 	- 当按M键时，拾取连发会暂时禁用，且传送功能暂时启用
- * 	- 当按下esc时候，会立即重置状态为启用拾取，禁用传送
  */
 
 
@@ -17,6 +12,7 @@
 toggle_F := 1
 ;当使用切换拾取时，默认是否打开
 always_F := 0
+
 ;空格连发初始状态
 toggle_space := 0
 
@@ -25,19 +21,7 @@ toggle_space := 0
 	;使MouseMove即时完成
 	SetDefaultMouseSpeed, 1
 
-	;[V]键传送
-	^V::
-	+V::
-	V::
-		WinGetPos, X, Y, Width, Height, A
-		MouseMove X + Width - 100, Y + Height - 75
-		Click
-		Sleep 20
-	Return
-
-
-
-	;按住[F]时快速拾取，[Ctrl]切换功能
+	;按住[F]时快速拾取，[Ctrl+F]切换功能
 
 	^f::
 		if (toggle_F == 1)
@@ -60,38 +44,59 @@ toggle_space := 0
 	return
 
 
-	;[F]与[Shift+F]事件，以防止冲刺时拾取
-	+F::
-	~$F::
-		if (toggle_F == 1)
+
+	in_map := 0
+
+	~$*F::
+		if (in_map)
 		{
-			While GetKeyState("F", "P")
+			WinGetPos, X, Y, Width, Height, ahk_exe YuanShen.exe
+			MouseMove Width - 100, (Height * 0.92)
+			Click
+			Sleep 20
+		}
+		else
+		{
+			if (toggle_F == 1)
 			{
-				SendInput, f
+				While (GetKeyState("F", "P") && WinActive("ahk_exe YuanShen.exe"))
+				{
+					SendInput, {f}
 
-				Random, rand, 1, 100
-				if (rand <= 20)	;20%的概率触发
-					Send {WheelDown}
+					Random, rand, 1, 100
+					if (rand <= 20)	;20%的概率触发
+						Send {WheelDown}
 
-				Sleep, 10
+					Sleep, 10
 
-				;解决抢占Space事件
-				if (toggle_space && GetKeyState("Space", "P"))
-					SendInput, {space}
+					;解决抢占Space事件
+					if (toggle_space && GetKeyState("Space", "P"))
+						SendInput, {space}
+				}
+			}
+			else if (toggle_F == 2 && GetKeyState("F", "P"))
+			{
+				always_F := !always_F
+
+				if (always_F)
+					ToolTip, 持续拾取...
+				else
+					ToolTip, 停止拾取
+
+				SetTimer, RemoveToolTip, 1000
 			}
 		}
-		else if (toggle_F == 2 && GetKeyState("F", "P"))
-		{
-			always_F := !always_F
+	return
 
-			if (!always_F)
-				ToolTip, 停止拾取
-			else
-				ToolTip, 持续拾取...
+	~*M::
+		in_map := 1
+	return
 
-			SetTimer, RemoveToolTip, 1000
-		}
-
+	~*W::
+	~*S::
+	~*A::
+	~*D::
+		in_map := 0
 	return
 
 	RemoveToolTip:
@@ -99,15 +104,23 @@ toggle_space := 0
 		ToolTip
 	return
 
-	$F up::
-		while (always_F && toggle_F == 2)
+	~$*F up::
+		while (always_F && toggle_F == 2 && WinActive("ahk_exe YuanShen.exe"))
 		{
-			Send, {f}
-	        Sleep, 10
+			if (!in_map)
+			{
+				SendInput, {f}
+
+				Random, rand, 1, 100
+				if (rand <= 20)	;20%的概率触发
+					Send {WheelDown}
+
+				Sleep, 10
+			}
 		}
 	return
 
-	;[空格]连发，[Ctrl+空格]切换
+	;[空格]连发，[Ctrl+空格]切换f
 	^Space::
 		toggle_space := !toggle_space
 		if (toggle_space)
@@ -118,37 +131,46 @@ toggle_space := 0
 
 	return
 
-	~*space::
+	~$*space::
 		if (toggle_space)
 		{
-			While GetKeyState("Space", "P")
+			While (GetKeyState("Space", "P") && WinActive("ahk_exe YuanShen.exe"))
 			{
 				SendInput, {space}
 				Sleep, 10
+
+				;抢占F up事件
+				if (always_F && toggle_F == 2 && !in_map)
+				{
+					SendInput, {f}
+
+					Random, rand, 1, 100
+					if (rand <= 20)	;20%的概率触发
+						Send {WheelDown}
+				}
 			}
 		}
 	return
 
 
 	;右键瞄准，松开取消瞄准
-	+RButton::
-	RButton::
+	*RButton::
 		Send, {r}
 	return
 
-	RButton Up::
+	*RButton Up::
 		Send, {r}
 	return
 
 	;[Ctrl+数字键]切换角色并开大招（更好的Alt+数字键）
-	~^1::
-	~^2::
-	~^3::
-	~^4::
+	~*^1::
+	~*^2::
+	~*^3::
+	~*^4::
 		while (GetKeyState("Ctrl", "P"))
-	    {
-	        Send, {q}
-	        Sleep, 10
-	    }
+		{
+			Send, {q}
+			Sleep, 10
+		}
 
 #IfWinActive
