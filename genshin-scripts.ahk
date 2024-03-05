@@ -5,6 +5,7 @@
  * 	技术支持：
  * 		- ChatGPT，大部分功能由持续询问ChatGPT 3.5 Turbo实现，但有些问题过于复杂最终还是去看了文档
  * 		- Google，拜托，哪有人不用这个的
+ *
  */
 
 
@@ -16,6 +17,22 @@ always_F := 0
 ;空格连发初始状态
 toggle_space := 0
 
+
+;申请管理员权限
+full_command_line := DllCall("GetCommandLine", "str")
+
+if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)"))
+{
+	try
+	{
+		if A_IsCompiled
+			Run *RunAs "%A_ScriptFullPath%" /restart
+		else
+			Run *RunAs "%A_AhkPath%" /restart "%A_ScriptFullPath%"
+	}
+	ExitApp
+}
+
 #IfWinActive, ahk_exe YuanShen.exe
 
 	;使MouseMove即时完成
@@ -23,7 +40,7 @@ toggle_space := 0
 
 	;按住[F]时快速拾取，[Ctrl+F]切换功能
 
-	^f::
+	*^f::
 		if (toggle_F == 1)
 		{
 			ToolTip, 快速拾取：×
@@ -88,10 +105,12 @@ toggle_space := 0
 		}
 	return
 
+	;按下M键时视为在地图内，切换快速传送功能
 	~*M::
 		in_map := 1
 	return
 
+	;按方向键时视为不在地图
 	~*W::
 	~*S::
 	~*A::
@@ -104,6 +123,7 @@ toggle_space := 0
 		ToolTip
 	return
 
+	;拾取切换功能
 	~$*F up::
 		while (always_F && toggle_F == 2 && WinActive("ahk_exe YuanShen.exe"))
 		{
@@ -112,7 +132,8 @@ toggle_space := 0
 				SendInput, {f}
 
 				Random, rand, 1, 100
-				if (rand <= 20)	;20%的概率触发
+				;只有20%的概率触发滚轮，以免按键堵塞
+				if (rand <= 20)
 					Send {WheelDown}
 
 				Sleep, 10
@@ -145,7 +166,8 @@ toggle_space := 0
 					SendInput, {f}
 
 					Random, rand, 1, 100
-					if (rand <= 20)	;20%的概率触发
+					;只有20%的概率触发滚轮，以免按键堵塞
+					if (rand <= 20)
 						Send {WheelDown}
 				}
 			}
@@ -181,7 +203,7 @@ toggle_space := 0
 	in_map := 0
 
 	~$*F::
-		if (in_map || GetKeyState("Space", "P"))
+		if (in_map || GetKeyState("Ctrl", "P"))
 		{
 			WinGetPos, X, Y, Width, Height, ahk_exe StarRail.exe
 			MouseMove Width - 100, (Height * 0.89)
