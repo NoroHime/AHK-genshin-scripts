@@ -174,3 +174,39 @@ toggle_space := 0
 		}
 
 #IfWinActive
+
+
+#IfWinActive, ahk_exe StarRail.exe
+
+	in_map := 0
+
+	~$*F::
+		if (in_map || GetKeyState("Space", "P"))
+		{
+			WinGetPos, X, Y, Width, Height, ahk_exe StarRail.exe
+			MouseMove Width - 100, (Height * 0.89)
+			Click
+			Sleep 20
+		}
+		else
+		{
+			While (GetKeyState("F", "P") && WinActive("ahk_exe StarRail.exe"))
+			{
+				SendInput, {f}
+				Sleep, 10
+			}
+		}
+	return
+
+	~*M::
+		in_map := 1
+	return
+
+	~*W::
+	~*S::
+	~*A::
+	~*D::
+		in_map := 0
+	return
+
+#IfWinActive
