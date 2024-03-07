@@ -21,6 +21,11 @@ toggle_space := 0
 ;申请管理员权限
 full_command_line := DllCall("GetCommandLine", "str")
 
+
+;国际服支持
+GroupAdd, genshin, ahk_exe YuanShen.exe
+GroupAdd, genshin, ahk_exe GenshinImpact.exe
+
 if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)"))
 {
 	try
@@ -33,7 +38,7 @@ if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)"))
 	ExitApp
 }
 
-#IfWinActive, ahk_exe YuanShen.exe
+#IfWinActive, ahk_group genshin
 
 	;使MouseMove即时完成
 	SetDefaultMouseSpeed, 1
@@ -67,7 +72,7 @@ if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)"))
 	~$*F::
 		if (in_map)
 		{
-			WinGetPos, X, Y, Width, Height, ahk_exe YuanShen.exe
+			WinGetPos, X, Y, Width, Height, ahk_group genshin
 			MouseMove Width - 100, (Height * 0.92)
 			Click
 			Sleep 20
@@ -76,13 +81,13 @@ if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)"))
 		{
 			if (toggle_F == 1)
 			{
-				While (GetKeyState("F", "P") && WinActive("ahk_exe YuanShen.exe"))
+				While (GetKeyState("F", "P") && WinActive("ahk_group genshin"))
 				{
 					SendInput, {f}
 
 					Random, rand, 1, 100
 					if (rand <= 20)	;20%的概率触发
-						Send {WheelDown}
+						SendInput {wheeldown}
 
 					Sleep, 10
 
@@ -125,7 +130,7 @@ if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)"))
 
 	;拾取切换功能
 	~$*F up::
-		while (always_F && toggle_F == 2 && WinActive("ahk_exe YuanShen.exe"))
+		while (always_F && toggle_F == 2 && WinActive("ahk_group genshin"))
 		{
 			if (!in_map)
 			{
@@ -134,7 +139,7 @@ if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)"))
 				Random, rand, 1, 100
 				;只有20%的概率触发滚轮，以免按键堵塞
 				if (rand <= 20)
-					Send {WheelDown}
+					SendInput {wheeldown}
 
 				Sleep, 10
 			}
@@ -155,7 +160,7 @@ if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)"))
 	~$*space::
 		if (toggle_space)
 		{
-			While (GetKeyState("Space", "P") && WinActive("ahk_exe YuanShen.exe"))
+			While (GetKeyState("Space", "P") && WinActive("ahk_group genshin"))
 			{
 				SendInput, {space}
 				Sleep, 10
@@ -168,7 +173,7 @@ if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)"))
 					Random, rand, 1, 100
 					;只有20%的概率触发滚轮，以免按键堵塞
 					if (rand <= 20)
-						Send {WheelDown}
+						SendInput {wheeldown}
 				}
 			}
 		}
@@ -221,6 +226,41 @@ if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)"))
 	return
 
 	~*M::
+		in_map := 1
+	return
+
+	~*W::
+	~*S::
+	~*A::
+	~*D::
+		in_map := 0
+	return
+
+#IfWinActive
+
+#IfWinActive, 尘白禁区
+
+	in_map := 0
+
+	~$*F::
+		if (in_map || GetKeyState("Ctrl", "P"))
+		{
+			WinGetPos, X, Y, Width, Height, 尘白禁区
+			MouseMove Width * 0.7, Height * 0.7
+			Click
+			Sleep 20
+		}
+		else
+		{
+			While (GetKeyState("F", "P") && WinActive("尘白禁区"))
+			{
+				SendInput, {f}
+				Sleep, 10
+			}
+		}
+	return
+
+	~*ESC::
 		in_map := 1
 	return
 
