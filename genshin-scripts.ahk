@@ -15,13 +15,13 @@ readme.md
 
 *自用脚本，仓库仅供存档*
 
-## 使用：
+## 使用
 1. 前往AHK官网安装[AutoHotKey](https://www.autohotkey.com/)，脚本撰写时，使用的为[v2版本](https://www.autohotkey.com/download/ahk-v2.exe)。
 2. 下载并打开[genshin-scripts.ahk](https://github.com/NoroHime/AHK-genshin-scripts/raw/main/genshin-scripts.ahk)，脚本会自动申请管理员权限（原神与星穹铁道权限比较高，需要这么做）
 3. 当看到AHK程序在托盘显示时，脚本即为生效状态
 4. 如果游戏使用的为真正意义上的独占全屏，则无法看到脚本的ToolTip操作提示框
 
-## 原神：
+## 原神
  - 快速拾取：`Ctrl+F`切换功能
    - 切换：按下`F`开启持续拾取，直至再次按下F
    - 按住：长按`F`时快速拾取，松开即取消
@@ -32,7 +32,7 @@ readme.md
  - 按住`Ctrl+数字键`自动切换该角色并释放元素爆发，用于替换游戏自带的`Alt+数字键`功能，且按下时会持续按`Q`，对于网络延迟有一定容错性
  - 适配国际服与中国大陆服进程
 
-## 星穹铁道：
+## 星穹铁道
 - `F键`连发，`Shift+F`切换该功能
 - 按下M键开启快速传送功能，开启时按`F`自动点击传送按钮，直至按下`任意移动键`取消功能，也可按下`Ctrl+F`强制触发该功能
 
@@ -66,6 +66,16 @@ if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)"))
 
 
 
+;拾取初始模式，1：按住 2：切换 0：禁用
+toggle_F := 1
+;当使用切换拾取时，默认是否打开
+always_F := 0
+;空格连发初始状态
+toggle_space := 0
+
+;使MouseMove即时完成
+SetDefaultMouseSpeed, 1
+
 RemoveToolTip:
 	SetTimer, RemoveToolTip, Off
 	ToolTip
@@ -73,16 +83,6 @@ return
 
 #IfWinActive, ahk_group genshin
 	
-	;拾取初始模式，1：按住 2：切换 0：禁用
-	toggle_F := 1
-	;当使用切换拾取时，默认是否打开
-	always_F := 0
-
-	;空格连发初始状态
-	toggle_space := 0
-
-	;使MouseMove即时完成
-	SetDefaultMouseSpeed, 1
 
 	;按住[F]时快速拾取，[Ctrl+F]切换功能
 
@@ -105,8 +105,6 @@ return
 		SetTimer, RemoveToolTip, 1000
 
 	return
-
-
 
 	in_map := 0
 
