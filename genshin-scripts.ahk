@@ -8,24 +8,50 @@
  *
  */
 
+/*
+readme.md
 
-;拾取初始模式，1：按住 2：切换 0：禁用
-toggle_F := 1
-;当使用切换拾取时，默认是否打开
-always_F := 0
+# AHK-genshin-scripts
 
-;空格连发初始状态
-toggle_space := 0
+*自用脚本，仓库仅供存档*
 
+## 使用：
+1. 前往AHK官网安装[AutoHotKey](https://www.autohotkey.com/)，脚本撰写时，使用的为[v2版本](https://www.autohotkey.com/download/ahk-v2.exe)。
+2. 下载并打开[genshin-scripts.ahk](https://github.com/NoroHime/AHK-genshin-scripts/raw/main/genshin-scripts.ahk)，脚本会自动申请管理员权限（原神与星穹铁道权限比较高，需要这么做）
+3. 当看到AHK程序在托盘显示时，脚本即为生效状态
+4. 如果游戏使用的为真正意义上的独占全屏，则无法看到脚本的ToolTip操作提示框
 
-;申请管理员权限
-full_command_line := DllCall("GetCommandLine", "str")
+## 原神：
+ - 快速拾取：`Ctrl+F`切换功能
+   - 切换：按下`F`开启持续拾取，直至再次按下F
+   - 按住：长按`F`时快速拾取，松开即取消
+   - 关闭：不做任何事情
+ - 自动跳跃：`Ctrl+空格`切换开关，如果与切换拾取搭配使用可能会有小问题
+ - 按下`M键`开启快速传送功能，开启时按`F`自动点击传送按钮，直至按下`任意移动键`取消功能
+ - 当为弓箭手时，按住`鼠标右键`即为瞄准，松开取消瞄准
+ - 按住`Ctrl+数字键`自动切换该角色并释放元素爆发，用于替换游戏自带的`Alt+数字键`功能，且按下时会持续按`Q`，对于网络延迟有一定容错性
+ - 适配国际服与中国大陆服进程
 
+## 星穹铁道：
+- `F键`连发，`Shift+F`切换该功能
+- 按下M键开启快速传送功能，开启时按`F`自动点击传送按钮，直至按下`任意移动键`取消功能，也可按下`Ctrl+F`强制触发该功能
+
+## 尘白禁区
+- `F键`连发，`Shift+F`切换该功能
+- 按下`ESC键`开启快速点击对话框功能，开启时按`F`自动点击传送按钮，直至按下`任意移动键`取消功能，也可按下`Ctrl+F`强制触发该功能
+
+## 森林之子
+- 按住`F`时候快速`E`拾取
+
+*/
 
 ;国际服支持
 GroupAdd, genshin, ahk_exe YuanShen.exe
 GroupAdd, genshin, ahk_exe GenshinImpact.exe
 
+
+;申请管理员权限
+full_command_line := DllCall("GetCommandLine", "str")
 if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)"))
 {
 	try
@@ -38,7 +64,22 @@ if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)"))
 	ExitApp
 }
 
+
+
+RemoveToolTip:
+	SetTimer, RemoveToolTip, Off
+	ToolTip
+return
+
 #IfWinActive, ahk_group genshin
+	
+	;拾取初始模式，1：按住 2：切换 0：禁用
+	toggle_F := 1
+	;当使用切换拾取时，默认是否打开
+	always_F := 0
+
+	;空格连发初始状态
+	toggle_space := 0
 
 	;使MouseMove即时完成
 	SetDefaultMouseSpeed, 1
@@ -123,11 +164,6 @@ if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)"))
 		in_map := 0
 	return
 
-	RemoveToolTip:
-		SetTimer, RemoveToolTip, Off
-		ToolTip
-	return
-
 	;拾取切换功能
 	~$*F up::
 		while (always_F && toggle_F == 2 && WinActive("ahk_group genshin"))
@@ -204,6 +240,18 @@ if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)"))
 
 
 #IfWinActive, ahk_exe StarRail.exe
+	
+	toggle_F := 1
+
+	*+f::
+		toggle_F := !toggle_F
+
+		if (toggle_F)
+			ToolTip, F键连发：√
+		else
+			ToolTip, F键连发：×
+		SetTimer, RemoveToolTip, 1000
+	return
 
 	in_map := 0
 
@@ -215,7 +263,7 @@ if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)"))
 			Click
 			Sleep 20
 		}
-		else
+		else if (toggle_F)
 		{
 			While (GetKeyState("F", "P") && WinActive("ahk_exe StarRail.exe"))
 			{
@@ -242,6 +290,20 @@ if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)"))
 
 	in_map := 0
 
+	toggle_F := 1
+
+	*+f::
+		toggle_F := !toggle_F
+
+		if (toggle_F)
+			ToolTip, F键连发：√
+		else
+			ToolTip, F键连发：×
+		SetTimer, RemoveToolTip, 1000
+	return
+
+	in_map := 0
+
 	~$*F::
 		if (in_map || GetKeyState("Ctrl", "P"))
 		{
@@ -250,7 +312,7 @@ if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)"))
 			Click
 			Sleep 20
 		}
-		else
+		else if (toggle_F)
 		{
 			While (GetKeyState("F", "P") && WinActive("尘白禁区"))
 			{
@@ -271,4 +333,14 @@ if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)"))
 		in_map := 0
 	return
 
+#IfWinActive
+
+#IfWinActive, ahk_exe SonsOfTheForest.exe
+	~*F::
+		While (GetKeyState("F", "P") && WinActive("ahk_exe SonsOfTheForest.exe"))
+		{
+			SendInput, {e}
+			Sleep, 10
+		}
+	return
 #IfWinActive
