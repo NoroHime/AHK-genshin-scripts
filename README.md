@@ -3,8 +3,10 @@
 *自用脚本，仓库仅供存档*
 
 ## 使用：
-前往AHK官网安装[AutoHotKey](https://www.autohotkey.com/)，脚本撰写时，使用的为[v2版本](https://www.autohotkey.com/download/ahk-v2.exe)。
-如果游戏使用的为真正意义上的独占全屏，则无法看到脚本的ToolTip操作提示框
+1. 前往AHK官网安装[AutoHotKey](https://www.autohotkey.com/)，脚本撰写时，使用的为[v2版本](https://www.autohotkey.com/download/ahk-v2.exe)。
+2. 下载并打开[genshin-scripts.ahk](https://github.com/NoroHime/AHK-genshin-scripts/raw/main/genshin-scripts.ahk)，脚本会自动申请管理员权限（原神与星穹铁道权限比较高，需要这么做）
+3. 当看到AHK程序在托盘显示时，脚本即为生效状态
+4. 如果游戏使用的为真正意义上的独占全屏，则无法看到脚本的ToolTip操作提示框
 
 ## 原神：
  - 快速拾取：`Ctrl+F`切换功能
@@ -26,4 +28,4 @@
 - 按下`ESC键`开启快速点击对话框功能，开启时按`F`自动点击传送按钮，直至按下`任意移动键`取消功能，也可按下`Ctrl+F`强制触发该功能
 
 ## 森林之子
-- 按住`F`时候快速拾取
+- 按住`F`时候快速`E`拾取
