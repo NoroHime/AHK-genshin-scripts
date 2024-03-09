@@ -120,7 +120,7 @@ return
 		{
 			if (toggle_F == 1)
 			{
-				While (GetKeyState("F", "P") && WinActive("ahk_group genshin"))
+				While (GetKeyState("F", "P") && WinActive("ahk_group genshin") && !in_map)
 				{
 					SendInput, {f}
 
@@ -263,7 +263,7 @@ return
 		}
 		else if (toggle_F)
 		{
-			While (GetKeyState("F", "P") && WinActive("ahk_exe StarRail.exe"))
+			While (GetKeyState("F", "P") && WinActive("ahk_exe StarRail.exe") && !in_map)
 			{
 				SendInput, {f}
 				Sleep, 10
@@ -312,7 +312,7 @@ return
 		}
 		else if (toggle_F)
 		{
-			While (GetKeyState("F", "P") && WinActive("³¾°×½ûÇø"))
+			While (GetKeyState("F", "P") && WinActive("³¾°×½ûÇø") && !in_map)
 			{
 				SendInput, {f}
 				Sleep, 10
