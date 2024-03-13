@@ -37,7 +37,7 @@ readme.md
 - 按下M键开启快速传送功能，开启时按`F`自动点击传送按钮，直至按下`任意移动键`取消功能，也可按下`Ctrl+F`强制触发该功能
 
 ## 尘白禁区
-- `F键`连发，`Shift+F`切换该功能
+- `F键`连发
 - 按下`ESC键`开启快速点击对话框功能，开启时按`F`自动点击传送按钮，直至按下`任意移动键`取消功能，也可按下`Ctrl+F`强制触发该功能
 
 ## 森林之子
@@ -49,6 +49,9 @@ readme.md
 GroupAdd, genshin, ahk_exe YuanShen.exe
 GroupAdd, genshin, ahk_exe GenshinImpact.exe
 
+;防止热键过于频繁而触发提醒
+#HotkeyInterval 20
+#MaxHotkeysPerInterval 20000
 
 ;申请管理员权限
 full_command_line := DllCall("GetCommandLine", "str")
@@ -86,7 +89,7 @@ return
 
 	;按住[F]时快速拾取，[Ctrl+F]切换功能
 
-	*^f::
+	~^F::
 		if (toggle_F == 1)
 		{
 			ToolTip, 快速拾取：×
@@ -120,7 +123,7 @@ return
 		{
 			if (toggle_F == 1)
 			{
-				While (GetKeyState("F", "P") && WinActive("ahk_group genshin") && !in_map)
+				while (GetKeyState("F", "P") && WinActive("ahk_group genshin") && !in_map && toggle_F == 1)
 				{
 					SendInput, {f}
 
@@ -150,6 +153,7 @@ return
 	return
 
 	;按下M键时视为在地图内，切换快速传送功能
+	~*J::
 	~*M::
 		in_map := 1
 	return
@@ -164,19 +168,16 @@ return
 
 	;拾取切换功能
 	~$*F up::
-		while (always_F && toggle_F == 2 && WinActive("ahk_group genshin"))
+		while (always_F && toggle_F == 2 && WinActive("ahk_group genshin") && !in_map)
 		{
-			if (!in_map)
-			{
-				SendInput, {f}
+			SendInput, {f}
 
-				Random, rand, 1, 100
-				;只有20%的概率触发滚轮，以免按键堵塞
-				if (rand <= 20)
-					SendInput {wheeldown}
+			Random, rand, 1, 100
+			;只有20%的概率触发滚轮，以免按键堵塞
+			if (rand <= 20)
+				SendInput {wheeldown}
 
-				Sleep, 10
-			}
+			Sleep, 10
 		}
 	return
 
@@ -192,23 +193,20 @@ return
 	return
 
 	~$*space::
-		if (toggle_space)
+		while (toggle_space && GetKeyState("Space", "P") && WinActive("ahk_group genshin"))
 		{
-			While (GetKeyState("Space", "P") && WinActive("ahk_group genshin"))
+			SendInput, {space}
+			Sleep, 10
+
+			;抢占F up事件
+			if (always_F && toggle_F == 2 && !in_map)
 			{
-				SendInput, {space}
-				Sleep, 10
+				SendInput, {f}
 
-				;抢占F up事件
-				if (always_F && toggle_F == 2 && !in_map)
-				{
-					SendInput, {f}
-
-					Random, rand, 1, 100
-					;只有20%的概率触发滚轮，以免按键堵塞
-					if (rand <= 20)
-						SendInput {wheeldown}
-				}
+				Random, rand, 1, 100
+				;只有20%的概率触发滚轮，以免按键堵塞
+				if (rand <= 20)
+					SendInput {wheeldown}
 			}
 		}
 	return
@@ -216,11 +214,11 @@ return
 
 	;右键瞄准，松开取消瞄准
 	*RButton::
-		Send, {r}
+		SendInput, {r}
 	return
 
 	*RButton Up::
-		Send, {r}
+		SendInput, {r}
 	return
 
 	;[Ctrl+数字键]切换角色并开大招（更好的Alt+数字键）
@@ -230,24 +228,24 @@ return
 	~*^4::
 		while (GetKeyState("Ctrl", "P"))
 		{
-			Send, {q}
+			SendInput, {q}
 			Sleep, 10
 		}
+	return
 
 #IfWinActive
 
 
 #IfWinActive, ahk_exe StarRail.exe
-	
-	toggle_F := 1
 
-	*+f::
+	+F::
 		toggle_F := !toggle_F
 
 		if (toggle_F)
 			ToolTip, F键连发：√
 		else
 			ToolTip, F键连发：×
+
 		SetTimer, RemoveToolTip, 1000
 	return
 
@@ -261,9 +259,9 @@ return
 			Click
 			Sleep 20
 		}
-		else if (toggle_F)
+		else
 		{
-			While (GetKeyState("F", "P") && WinActive("ahk_exe StarRail.exe") && !in_map)
+			while (toggle_F && GetKeyState("F", "P") && WinActive("ahk_exe StarRail.exe") && !in_map)
 			{
 				SendInput, {f}
 				Sleep, 10
@@ -271,6 +269,7 @@ return
 		}
 	return
 
+	~*J::
 	~*M::
 		in_map := 1
 	return
@@ -288,20 +287,6 @@ return
 
 	in_map := 0
 
-	toggle_F := 1
-
-	*+f::
-		toggle_F := !toggle_F
-
-		if (toggle_F)
-			ToolTip, F键连发：√
-		else
-			ToolTip, F键连发：×
-		SetTimer, RemoveToolTip, 1000
-	return
-
-	in_map := 0
-
 	~$*F::
 		if (in_map || GetKeyState("Ctrl", "P"))
 		{
@@ -310,9 +295,9 @@ return
 			Click
 			Sleep 20
 		}
-		else if (toggle_F)
+		else
 		{
-			While (GetKeyState("F", "P") && WinActive("尘白禁区") && !in_map)
+			while (GetKeyState("F", "P") && WinActive("尘白禁区") && !in_map)
 			{
 				SendInput, {f}
 				Sleep, 10
@@ -335,7 +320,7 @@ return
 
 #IfWinActive, ahk_exe SonsOfTheForest.exe
 	~*F::
-		While (GetKeyState("F", "P") && WinActive("ahk_exe SonsOfTheForest.exe"))
+		while (GetKeyState("F", "P") && WinActive("ahk_exe SonsOfTheForest.exe"))
 		{
 			SendInput, {e}
 			Sleep, 10
