@@ -2,7 +2,7 @@
 
 *自用脚本，仓库仅供存档*
 
-## 使用：
+## 使用
 1. 前往AHK官网安装[AutoHotKey](https://www.autohotkey.com/)，脚本撰写时，使用的为[v2版本](https://www.autohotkey.com/download/ahk-v2.exe)。
 2. 下载并打开[genshin-scripts.ahk](https://github.com/NoroHime/AHK-genshin-scripts/raw/main/genshin-scripts.ahk)，脚本会自动申请管理员权限（原神与星穹铁道权限比较高，需要这么做）
 3. 当看到AHK程序在托盘显示时，脚本即为生效状态
@@ -24,7 +24,7 @@
 - 按下M键开启快速传送功能，开启时按`F`自动点击传送按钮，直至按下`任意移动键`取消功能，也可按下`Ctrl+F`强制触发该功能
 
 ## 尘白禁区
-- `F键`连发，`Shift+F`切换该功能
+- `F键`连发
 - 按下`ESC键`开启快速点击对话框功能，开启时按`F`自动点击传送按钮，直至按下`任意移动键`取消功能，也可按下`Ctrl+F`强制触发该功能
 
 ## 森林之子
