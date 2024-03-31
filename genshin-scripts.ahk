@@ -137,7 +137,7 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 			WinGetPos, X, Y, Width, Height, ahk_group genshin
 			MouseMove Width - 110, (Height * 0.92)
 			Click
-			Sleep 10
+			Sleep 50
 		} else if (toggle_F) {
 			while (GetKeyState("F", "P") && WinActive("ahk_group genshin")) {
 
@@ -335,7 +335,7 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 #IfWinActive, ³¾°×½ûÇø
 
 	~$*F::
-		if (IsMouseAtCenterOfActiveWindow(5) || GetKeyState("Ctrl", "P"))
+		if (!IsMouseAtCenterOfActiveWindow(5) || GetKeyState("Ctrl", "P"))
 		{
 			WinGetPos, X, Y, Width, Height, ³¾°×½ûÇø
 			MouseMove Width * 0.7, Height * 0.7
