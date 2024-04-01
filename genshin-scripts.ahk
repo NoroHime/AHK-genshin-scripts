@@ -102,9 +102,11 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 	; 计算窗口中心坐标
 	centerX := winX + (winWidth // 2)
 	centerY := winY + (winHeight // 2)
-
+	
 	; 获取鼠标当前坐标
 	MouseGetPos, mouseX, mouseY
+	mouseX += winX
+	MouseY += winY
 
 	; 检查鼠标是否在容错范围内
 	return Abs(mouseX - centerX) <= tolerance && Abs(mouseY - centerY) <= tolerance
@@ -334,8 +336,11 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 
 #IfWinActive, 尘白禁区
 
+	
+	map_just_started := 0
+
 	~$*F::
-		if (!IsMouseAtCenterOfActiveWindow(5) || GetKeyState("Ctrl", "P"))
+		if (map_just_started || GetKeyState("Ctrl", "P"))
 		{
 			WinGetPos, X, Y, Width, Height, 尘白禁区
 			MouseMove Width * 0.7, Height * 0.7
@@ -344,12 +349,23 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 		}
 		else
 		{
-			while (GetKeyState("F", "P") && WinActive("尘白禁区"))
+			while (GetKeyState("F", "P") && WinActive("尘白禁区") && !map_just_started)
 			{
 				SendInput, {f}
 				Sleep, 10
 			}
 		}
+	return
+
+	~*ESC::
+		map_just_started := 1
+	return
+
+	~*W::
+	~*S::
+	~*A::
+	~*D::
+		map_just_started := 0
 	return
 
 #IfWinActive
