@@ -80,8 +80,8 @@ always_F := 0
 ;空格连发初始状态
 toggle_space := 0
 ;空格连发功能开关
-SpaceBurst := 0
-privates := 1
+SpaceBurst := 1
+privates := 0
 
 ;使MouseMove即时完成
 SetDefaultMouseSpeed, 1
