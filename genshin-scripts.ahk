@@ -80,8 +80,8 @@ always_F := 0
 ;空格连发初始状态
 toggle_space := 0
 ;空格连发功能开关
-SpaceBurst := 1
-privates := 0
+SpaceBurst := 0
+privates := 1
 
 ;使MouseMove即时完成
 SetDefaultMouseSpeed, 1
@@ -224,7 +224,9 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 
 	*RButton Up::
 		click
-		SendInput, {LShift}
+		SendInput, {LShift down}
+		Sleep, 10
+		SendInput, {LShift up}
 	return
 
 	;============================================
@@ -288,6 +290,9 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 		ctrlComboPressed := 0
 	return
 
+	;============================================
+	; [Ctrl+X] F2搜索并加入（私人）
+	;============================================
 	*^X::
 		if !privates
 		return
