@@ -79,6 +79,9 @@ toggle_F := 1
 always_F := 0
 ;空格连发初始状态
 toggle_space := 0
+;空格连发功能开关
+SpaceBurst := 1
+privates := 0
 
 ;使MouseMove即时完成
 SetDefaultMouseSpeed, 1
@@ -111,6 +114,7 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 	; 检查鼠标是否在容错范围内
 	return Abs(mouseX - centerX) <= tolerance && Abs(mouseY - centerY) <= tolerance
 }
+
 
 
 #IfWinActive, ahk_group genshin
@@ -146,16 +150,14 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 				SendInput, f
 
 				times += 1
-				if (times == 5) {
+				if (times == 4) {
 					times := 0
 					SendInput {wheeldown}
 				}
 
 				Sleep, 20
 
-				;解决抢占Space事件
-				if (toggle_space && GetKeyState("Space", "P"))
-					SendInput, {space}
+				;解决抢占rendInput, {space}
 			}
 		}
 	return
@@ -187,13 +189,16 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 	; [空格]连发，[Ctrl+空格]切换
 	;============================================
 	^Space::
+
+		if !SpaceBurst
+		return
+
 		toggle_space := !toggle_space
 		if (toggle_space)
 			ToolTip, 自动空格：√
 		else
 			ToolTip, 自动空格：×
 		SetTimer, RemoveToolTip, 1000
-
 	return
 
 	~$*space::
@@ -218,10 +223,8 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 	return
 
 	*RButton Up::
-		Click
-		SendInput, {LShift Down}
-		Sleep, 1
-		SendInput, {LShift up}
+		click
+		SendInput, {LShift}
 	return
 
 	;============================================
@@ -252,36 +255,48 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 	;============================================
 	ctrlComboPressed := 0
 
-	shift_looping() {
+	TimerShift() {
 
-		if GetKeyState("Ctrl", "P") {
-			SendInput, {Shift down}
-			Sleep, 2
+		if (GetKeyState("Ctrl", "P")) {
 			SendInput, {Shift up}
-			Sleep, 800
-		} else
-			SetTimer, shift_looping, Off
+			Sleep, 1
+			SendInput, {Shift down}
+		} else {
+			SendInput, {Shift up}
+			SetTimer, TimerShift, Off
+		}
 	}
 
-	~*Ctrl::
+	~*Ctrl::	
+	~*^W::
 	~*W::
 		map_just_started := 0
 
 		if (!ctrlComboPressed && GetKeyState("Ctrl", "P") && GetKeyState("W", "P")) {
 
-			ctrlComboPressed := 1
-			SendInput, {Shift down}
-			Sleep, 2
-			SendInput, {Shift up}
-
-			SetTimer, shift_looping, 800
+			ctrlComboPressed := 2
+			TimerShift()
+			SetTimer, TimerShift, 799
 		}
 	return
 
 	~*Ctrl up::
+	~*^W up::
 	~*W up::
-		SetTimer, shift_looping, Off
+		SendInput, {Shift up}
+		SetTimer, TimerShift, Off
 		ctrlComboPressed := 0
+	return
+
+	*^X::
+		if !privates
+		return
+		WinGetPos, X, Y, Width, Height, ahk_group genshin
+		MouseMove Width * 0.87, (Height * 0.1)
+		Click
+		Sleep 70
+		MouseMove Width * 0.87, (Height * 0.22)
+		Click
 	return
 
 
