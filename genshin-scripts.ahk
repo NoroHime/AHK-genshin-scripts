@@ -51,6 +51,7 @@ readme.md
 ;============================================
 GroupAdd, genshin, ahk_exe YuanShen.exe
 GroupAdd, genshin, ahk_exe GenshinImpact.exe
+GroupAdd, genshin, ahk_exe Genshin Impact Cloud Game.exe
 
 ;============================================
 ; 防止热键过于频繁而触发提醒
@@ -188,7 +189,7 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 	;============================================
 	; [空格]连发，[Ctrl+空格]切换
 	;============================================
-	^Space::
+	~^Space::
 
 		if !SpaceBurst
 		return
@@ -211,7 +212,7 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 	;============================================
 	;锁定大写状态 （bug对策）
 	;============================================
-	~*CapsLock::
+	~*CapsLock up::
 		SetCapsLockState, Off
 	return
 
@@ -278,7 +279,7 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 
 			ctrlComboPressed := 2
 			TimerShift()
-			SetTimer, TimerShift, 799
+			SetTimer, TimerShift, 800
 		}
 	return
 
@@ -397,5 +398,41 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 			SendInput, {e}
 			Sleep, 10
 		}
+	return
+#IfWinActive
+
+;============================================
+; [Ctrl+S] 抢uid加入
+;============================================
+#IfWinActive, QQ频道
+	*^S::
+		Clipboard := ""
+		SendInput ^c
+		ClipWait 1
+
+		SetTimer, RemoveToolTip, 2000
+		ToolTip, %Clipboard%
+
+		if (strlen(Clipboard) <> 9) {
+			ToolTip, 复制有误
+			return
+		}
+
+		GroupActivate, genshin, r
+		WinGetPos, X, Y, Width, Height, ahk_group genshin
+
+		MouseMove Width * 0.3, (Height * 0.1)
+		click
+		sleep, 2
+
+		SendInput ^v
+		sleep, 2
+
+		MouseMove Width * 0.87, (Height * 0.1)
+		Click
+		Sleep 70
+
+		MouseMove Width * 0.87, (Height * 0.22)
+		Click
 	return
 #IfWinActive
