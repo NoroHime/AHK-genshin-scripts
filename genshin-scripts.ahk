@@ -47,7 +47,7 @@ readme.md
 */
 
 ;============================================
-; 国际服支持
+; 国际服、国服、云原神支持
 ;============================================
 GroupAdd, genshin, ahk_exe YuanShen.exe
 GroupAdd, genshin, ahk_exe GenshinImpact.exe
@@ -81,8 +81,10 @@ always_F := 0
 ;空格连发初始状态
 toggle_space := 0
 ;空格连发功能开关
-SpaceBurst := 1
-privates := 0
+SpaceBurst := 0
+;私人功能开关（抢uid）
+privates := 10
+RightButtonFeatures := 0
 
 ;使MouseMove即时完成
 SetDefaultMouseSpeed, 1
@@ -117,7 +119,6 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 }
 
 
-
 #IfWinActive, ahk_group genshin
 
 	;============================================
@@ -142,7 +143,8 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 
 		if (!IsMouseAtCenterOfActiveWindow() || map_just_started) {
 			WinGetPos, X, Y, Width, Height, ahk_group genshin
-			MouseMove Width - 110, (Height * 0.92)
+			if (!GetKeyState("LButton", "P"))
+				MouseMove Width - 110, (Height * 0.92)
 			Click
 			Sleep 50
 		} else if (toggle_F) {
@@ -157,8 +159,6 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 				}
 
 				Sleep, 20
-
-				;解决抢占rendInput, {space}
 			}
 		}
 	return
@@ -171,20 +171,56 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 	return
 
 	~*LButton::
-		inputing := 0
+		if (inputing) {
+			Sleep, 200
+			if (IsMouseAtCenterOfActiveWindow()) {
+
+				inputing := 0
+			}
+		}
 		map_just_started := 0
 	return
 
+	~*Tab::
 	~*M::
 		map_just_started := 1
+	return
+
+	~*ESC::
+		inputing := 0
+		map_just_started := 0
 	return
 
 	;W事件合并入了[Ctrl+W]功能
 	~*S::
 	~*A::
 	~*D::
-		map_just_started := 0
+		map_just_started := 0 
 	return
+
+	;============================================
+	; [F2] 调整按钮并聚焦输入栏
+	;============================================
+	~*F2::
+
+		inputing := 0
+		map_just_started := 0
+		Sleep, 500
+
+		WinGetPos, X, Y, Width, Height, ahk_group genshin
+
+		MouseMove Width * 0.5, (Height * 0.5)
+		SendInput {LButton down}
+		SetDefaultMouseSpeed, 5
+		MouseMove Width * 0.5, (Height * 0.5) - 90
+		Sleep, 100
+		SetDefaultMouseSpeed, 1
+		SendInput {LButton up}
+		
+		MouseMove Width * 0.5, (Height * 0.1)
+		click
+	return
+
 
 	;============================================
 	; [空格]连发，[Ctrl+空格]切换
@@ -220,14 +256,32 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 	; 蓄力-R-闪避
 	;============================================
 	*RButton::
+		if (!RightButtonFeatures) {
+			SendInput, {RButton down}
+			return
+		}
+
 		SendInput, r
 	return
 
 	*RButton Up::
+		if (!RightButtonFeatures) {
+			SendInput, {RButton up}
+			return
+		}
 		click
 		SendInput, {LShift down}
 		Sleep, 10
 		SendInput, {LShift up}
+	return
+
+	~*^RButton::
+		RightButtonFeatures := !RightButtonFeatures
+		if (RightButtonFeatures)
+			ToolTip, 蓄力-R-闪避：√
+		else
+			ToolTip, 蓄力-R-闪避：×
+		SetTimer, RemoveToolTip, 1000
 	return
 
 	;============================================
@@ -292,23 +346,142 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 	return
 
 	;============================================
-	; [Ctrl+X] F2搜索并加入（私人）
+	; [Ctrl+S] F2搜索并加入（私人）
 	;============================================
-	*^X::
-		if !privates
-		return
+	*^S::
+		if !privates {
+			SendInput, {^s}
+			return
+		}
+
 		WinGetPos, X, Y, Width, Height, ahk_group genshin
 		MouseMove Width * 0.87, (Height * 0.1)
 		Click
 		Sleep 70
 		MouseMove Width * 0.87, (Height * 0.22)
 		Click
-	return
+		Sleep, 1
+		MouseMove Width * 0.5, (Height * 0.1)
+		Click
 
+	return
 
 #IfWinActive
 
+;============================================
+; [Ctrl+S] 抢uid加入
+;============================================
+#IfWinActive, QQ频道
+	*^S::
+		Clipboard := ""
+		SendInput ^c
+		ClipWait 1
 
+		SetTimer, RemoveToolTip, 2000
+
+		; 定义映射关系
+		Mappings := "①1 ②2 ③3 ④4 ⑤5 ⑥6 ⑦7 ⑧8 ⑨9 ??0 一1 二2 三3 四4 五5 六6 七7 八8 九9 零0 壹1 贰2 叁3 肆4 伍5 陆6 柒7 捌8 玖9"  ; 使用空格分隔映射对
+
+		; 输入字符串
+		OutputStr := Clipboard
+
+		; 替换字符
+		Loop, Parse, Mappings, %A_Space%  ; 遍历映射对
+		{
+			If (A_LoopField != "")  ; 跳过空字符串
+			{
+				FromChar := SubStr(A_LoopField, 1, 1)  ; 获取第一个字符作为要替换的字符
+				ToChar := SubStr(A_LoopField, 0)  ; 获取第二个字符作为替换后的字符
+				StringReplace, OutputStr, OutputStr, %FromChar%, %ToChar%, All
+			}
+		}
+
+		; 去掉剩余的非数字字符
+		outputStr := RegExReplace(outputStr, "[^0-9]")
+		; 截取9位数字
+		outputStr := RegExReplace(outputStr, "^\D*(\d{9}).*", "$1")
+
+		; 将新字符串写入剪贴板
+		Clipboard := trim(outputStr)
+
+		ToolTip, %Clipboard%
+
+		if (strlen(Clipboard) <> 9) {
+			ToolTip, 复制有误 %Clipboard%
+			return
+		}
+
+		GroupActivate, genshin, r
+		WinGetPos, X, Y, Width, Height, ahk_group genshin
+
+		MouseMove Width * 0.3, (Height * 0.1)
+		click
+		sleep, 2
+
+		SendInput ^v
+		sleep, 2
+
+		MouseMove Width * 0.87, (Height * 0.1)
+		Click
+		Sleep 70
+
+		MouseMove Width * 0.87, (Height * 0.22)
+		; Click
+	return
+#IfWinActive
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+;============================================
+; 其他游戏
+;============================================
 #IfWinActive, ahk_exe StarRail.exe
 
 	+F::
@@ -398,41 +571,5 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 			SendInput, {e}
 			Sleep, 10
 		}
-	return
-#IfWinActive
-
-;============================================
-; [Ctrl+S] 抢uid加入
-;============================================
-#IfWinActive, QQ频道
-	*^S::
-		Clipboard := ""
-		SendInput ^c
-		ClipWait 1
-
-		SetTimer, RemoveToolTip, 2000
-		ToolTip, %Clipboard%
-
-		if (strlen(Clipboard) <> 9) {
-			ToolTip, 复制有误
-			return
-		}
-
-		GroupActivate, genshin, r
-		WinGetPos, X, Y, Width, Height, ahk_group genshin
-
-		MouseMove Width * 0.3, (Height * 0.1)
-		click
-		sleep, 2
-
-		SendInput ^v
-		sleep, 2
-
-		MouseMove Width * 0.87, (Height * 0.1)
-		Click
-		Sleep 70
-
-		MouseMove Width * 0.87, (Height * 0.22)
-		Click
 	return
 #IfWinActive
