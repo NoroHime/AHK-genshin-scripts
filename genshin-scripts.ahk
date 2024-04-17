@@ -76,32 +76,65 @@ if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)")) {
 
 ;F连发初始状态
 toggle_F := 1
-;当使用切换拾取时，默认是否打开
-always_F := 0
 ;空格连发初始状态
-toggle_space := 0
-;空格连发功能开关
-SpaceBurst := 0
-;私人功能开关（抢uid）
-privates := 10
-RightButtonFeatures := 0
+toggle_space := 1
+;私人功能开关（快捷输入uid）
+privates := 0
+;蓄力-R-闪避功能初始状态
+toggle_mouseright := 1
 
 ;使MouseMove即时完成
 SetDefaultMouseSpeed, 1
 
 ;============================================
-; 移除提示的辅助函数
-; 用法：SetTimer, RemoveToolTip, 1000
+; 辅助函数
 ;============================================
-RemoveToolTip:
-	SetTimer, RemoveToolTip, Off
+RemoveToolTip() {
 	ToolTip
-return
+	return
+}
+
+echo(text, timeout = 1000, positions = "random") {
+
+	WinGetPos, winX, winY, Width, Height, A
+
+	if (InStr(positions, "center")) {
+		posX := winX + Width / 2
+		PosY := winY + Height / 2
+	} else
+		MouseGetPos, posX, posY
+
+	posY -= 10
+	posX -= 7 * strlen(text)
+
+	if (InStr(positions, "rand")) {
+		Random randomX, -96, 96
+		Random randomY, -96, 96
+		posX += randomX
+		posY += randomY
+	}
+
+	if (InStr(positions, "up") || InStr(positions, "top"))
+		posY -= Height / 2 * 0.75
+
+	if (InStr(positions, "down") || InStr(positions, "bottom"))
+		posY += Height / 2 * 0.75
+
+	if (InStr(positions, "left"))
+		posX -= Width / 2 * 0.75
+
+	if (InStr(positions, "right"))
+		posX += Width / 2 * 0.75
+
+
+	ToolTip, %text%, %posX%, %posY%
+	SetTimer, RemoveToolTip, %timeout%
+}
 
 ;============================================
 ; 检测光标是否位于屏幕中心以判断战斗状态 tolerance：容错像素
 ;============================================
-IsMouseAtCenterOfActiveWindow(tolerance=3) {
+IsMouseAtCenterOfActiveWindow(tolerance = 3) {
 	; 获取活动窗口句柄及其尺寸
 	WinGetActiveStats, winTitle, winWidth, winHeight, winX, winY
 
@@ -129,11 +162,9 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 		toggle_F := !toggle_F
 
 		if (toggle_F)
-			ToolTip, 快速拾取：√
+			echo("快速拾取：√", 1000)
 		else
-			ToolTip, 快速拾取：×
-
-		SetTimer, RemoveToolTip, 1000
+			echo("快速拾取：×", 1000)
 
 	return
 
@@ -143,12 +174,18 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 
 		if (!IsMouseAtCenterOfActiveWindow() || map_just_started) {
 			WinGetPos, X, Y, Width, Height, ahk_group genshin
-			if (!GetKeyState("LButton", "P"))
+			if (!GetKeyState("LButton", "P")) {
+				MouseGetPos, mouseX, mouseY
+				BlockInput Mouse
 				MouseMove Width - 110, (Height * 0.92)
-			Click
+				Click
+				MouseMove %mouseX%, %mouseY%
+				BlockInput Off
+
+			}
 			Sleep 50
 		} else if (toggle_F) {
-			while (GetKeyState("F", "P") && WinActive("ahk_group genshin")) {
+			while (GetKeyState("F", "P") && WinActive("ahk_group genshin") && !inputing && !map_just_started) {
 
 				SendInput, f
 
@@ -168,14 +205,15 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 	;============================================
 	~*Enter::
 		inputing := 1
+		echo("进入输入模式")
 	return
 
 	~*LButton::
 		if (inputing) {
-			Sleep, 200
+			Sleep, 300
 			if (IsMouseAtCenterOfActiveWindow()) {
-
 				inputing := 0
+				echo("进入输入模式")
 			}
 		}
 		map_just_started := 0
@@ -183,7 +221,10 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 
 	~*Tab::
 	~*M::
+		if (GetKeyState("Alt", "P") && GetKeyState("Tab", "P"))
+			return
 		map_just_started := 1
+		echo("进入地图")
 	return
 
 	~*ESC::
@@ -205,44 +246,48 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 
 		inputing := 0
 		map_just_started := 0
-		Sleep, 500
 
 		WinGetPos, X, Y, Width, Height, ahk_group genshin
 
-		MouseMove Width * 0.5, (Height * 0.5)
-		SendInput {LButton down}
-		SetDefaultMouseSpeed, 5
-		MouseMove Width * 0.5, (Height * 0.5) - 90
-		Sleep, 100
-		SetDefaultMouseSpeed, 1
-		SendInput {LButton up}
-		
-		MouseMove Width * 0.5, (Height * 0.1)
-		click
+		if (GetKeyState("Ctrl", "P")) {
+			Sleep, 500
+
+			SendInput {wheeldown}
+			Sleep, 1
+			SendInput {wheeldown}
+			Sleep, 1
+			SendInput {wheeldown}
+			Sleep, 1
+
+			
+			MouseMove Width * 0.5, (Height * 0.1)
+			click
+			return
+		}
+
+		if (GetKeyState("Shift", "P")) {
+			Sleep, 500
+			MouseGetPos, mouseX, mouseY
+			MouseMove Width * 0.865, Height * 0.96
+			click
+			MouseMove %mouseX%, %mouseY%
+
+			return
+		}
+
 	return
 
 
 	;============================================
-	; [空格]连发，[Ctrl+空格]切换
+	; [空格]连发，[Alt+空格]切换
 	;============================================
-	~^Space::
-
-		if !SpaceBurst
-		return
+	~!Space::
 
 		toggle_space := !toggle_space
 		if (toggle_space)
-			ToolTip, 自动空格：√
+			echo("自动空格：√")
 		else
-			ToolTip, 自动空格：×
-		SetTimer, RemoveToolTip, 1000
-	return
-
-	~$*space::
-		while (toggle_space && GetKeyState("Space", "P") && WinActive("ahk_group genshin")) {
-			SendInput, {space}
-			Sleep, 10
-		}
+			echo("自动空格：×")
 	return
 
 	;============================================
@@ -255,8 +300,8 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 	;============================================
 	; 蓄力-R-闪避
 	;============================================
-	*RButton::
-		if (!RightButtonFeatures) {
+	$*RButton::
+		if (!toggle_mouseright) {
 			SendInput, {RButton down}
 			return
 		}
@@ -264,24 +309,23 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 		SendInput, r
 	return
 
-	*RButton Up::
-		if (!RightButtonFeatures) {
+	$*RButton Up::
+		if (!toggle_mouseright) {
 			SendInput, {RButton up}
 			return
 		}
 		click
-		SendInput, {LShift down}
+		SendInput, {RButton down}
 		Sleep, 10
-		SendInput, {LShift up}
+		SendInput, {RButton up}
 	return
 
 	~*^RButton::
-		RightButtonFeatures := !RightButtonFeatures
-		if (RightButtonFeatures)
-			ToolTip, 蓄力-R-闪避：√
+		toggle_mouseright := !toggle_mouseright
+		if (toggle_mouseright)
+			echo("蓄力-R-闪避：√")
 		else
-			ToolTip, 蓄力-R-闪避：×
-		SetTimer, RemoveToolTip, 1000
+			echo("蓄力-R-闪避：×")
 	return
 
 	;============================================
@@ -291,8 +335,20 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 	~*^2::
 	~*^3::
 	~*^4::
-		while (GetKeyState("Ctrl", "P")) {
-			SendInput, q
+		while (GetKeyState("1", "P")) {
+			SendInput, 1q
+			Sleep, 10
+		}
+		while (GetKeyState("2", "P")) {
+			SendInput, 2q
+			Sleep, 10
+		}
+		while (GetKeyState("3", "P")) {
+			SendInput, 3q
+			Sleep, 10
+		}
+		while (GetKeyState("4", "P")) {
+			SendInput, 4q
 			Sleep, 10
 		}
 	return
@@ -300,10 +356,10 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 	;============================================
 	; [Ctrl+Q] QM快捷键
 	;============================================
-	~$*^Q::
+	$*^Q::
 		map_just_started := 1
 		SendInput, q
-		Sleep, 1
+		Sleep, 10
 		SendInput, m
 	return
 
@@ -315,23 +371,29 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 	TimerShift() {
 
 		if (GetKeyState("Ctrl", "P")) {
-			SendInput, {Shift up}
-			Sleep, 1
-			SendInput, {Shift down}
+			SendInput, {RButton up}
+			Sleep, 10
+			SendInput, {RButton down}
 		} else {
-			SendInput, {Shift up}
+			SendInput, {RButton up}
 			SetTimer, TimerShift, Off
 		}
 	}
 
-	~*Ctrl::	
+	~*^Space::
+	~*Ctrl::
 	~*^W::
 	~*W::
 		map_just_started := 0
 
-		if (!ctrlComboPressed && GetKeyState("Ctrl", "P") && GetKeyState("W", "P")) {
+		if (GetKeyState("Space", "P")) {
+			while (toggle_space && GetKeyState("Space", "P") && GetKeyState("Ctrl", "P") && WinActive("ahk_group genshin")) {
+				SendInput, {space}
+				Sleep, 10
+			}
+		} else if (!ctrlComboPressed && GetKeyState("Ctrl", "P") && GetKeyState("W", "P")) {
 
-			ctrlComboPressed := 2
+			ctrlComboPressed := 1
 			TimerShift()
 			SetTimer, TimerShift, 800
 		}
@@ -340,7 +402,7 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 	~*Ctrl up::
 	~*^W up::
 	~*W up::
-		SendInput, {Shift up}
+		SendInput, {RButton up}
 		SetTimer, TimerShift, Off
 		ctrlComboPressed := 0
 	return
@@ -368,28 +430,57 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 
 #IfWinActive
 
+IsClipboardImage() {
+    ; 打开剪贴板
+    r := DllCall("OpenClipboard", "ptr", A_ScriptHwnd)
+    
+    ; 获取剪贴板中的数据格式
+    formats := DllCall("IsClipboardFormatAvailable", "uint", 0x8, "uint")
+    
+    ; 关闭剪贴板
+    r := DllCall("CloseClipboard")
+    
+    ; 判断是否包含图片格式
+    Return formats
+}
+
+;============================================
+; [Win+C] OCR识别
+;============================================
+; #c:: OCR()
+
 ;============================================
 ; [Ctrl+S] 抢uid加入
 ;============================================
 #IfWinActive, QQ频道
 	*^S::
+		; 保留旧剪切板
+		clipboardOld := Clipboard
+		; 清空剪贴板
 		Clipboard := ""
+		; 复制
 		SendInput ^c
+		; 等待剪切板更新
 		ClipWait 1
 
-		SetTimer, RemoveToolTip, 2000
-
 		; 定义映射关系
-		Mappings := "①1 ②2 ③3 ④4 ⑤5 ⑥6 ⑦7 ⑧8 ⑨9 ??0 一1 二2 三3 四4 五5 六6 七7 八8 九9 零0 壹1 贰2 叁3 肆4 伍5 陆6 柒7 捌8 玖9"  ; 使用空格分隔映射对
+		Mappings := "①1 ②2 ③3 ④4 ⑤5 ⑥6 ⑦7 ⑧8 ⑨9 一1 二2 三3 四4 五5 六6 七7 八8 九9 零0 壹1 贰2 叁3 肆4 伍5 陆6 柒7 捌8 玖9"  ; 使用空格分隔映射对
 
 		; 输入字符串
 		OutputStr := Clipboard
 
+		;============================================
+		; OCR图像识别功能，注释以切换功能
+		;============================================
+		; #include <vis2>
+		; if (IsClipboardImage()) {
+		; 	outputStr := OCR(Clipboard)
+		; }
+
 		; 替换字符
 		Loop, Parse, Mappings, %A_Space%  ; 遍历映射对
 		{
-			If (A_LoopField != "")  ; 跳过空字符串
-			{
+			If (A_LoopField != "") {
 				FromChar := SubStr(A_LoopField, 1, 1)  ; 获取第一个字符作为要替换的字符
 				ToChar := SubStr(A_LoopField, 0)  ; 获取第二个字符作为替换后的字符
 				StringReplace, OutputStr, OutputStr, %FromChar%, %ToChar%, All
@@ -404,10 +495,10 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 		; 将新字符串写入剪贴板
 		Clipboard := trim(outputStr)
 
-		ToolTip, %Clipboard%
+		echo(Clipboard)
 
 		if (strlen(Clipboard) <> 9) {
-			ToolTip, 复制有误 %Clipboard%
+			echo(复制有误 %Clipboard%)
 			return
 		}
 
@@ -421,16 +512,16 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 		SendInput ^v
 		sleep, 2
 
+		Clipboard := clipboardOld
+
 		MouseMove Width * 0.87, (Height * 0.1)
 		Click
 		Sleep 70
 
 		MouseMove Width * 0.87, (Height * 0.22)
-		; Click
+		Click
 	return
 #IfWinActive
-
-
 
 
 
@@ -488,11 +579,10 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 		toggle_F := !toggle_F
 
 		if (toggle_F)
-			ToolTip, F键连发：√
+			echo("F键连发：√")
 		else
-			ToolTip, F键连发：×
+			echo("F键连发：×")
 
-		SetTimer, RemoveToolTip, 1000
 	return
 
 
@@ -500,17 +590,18 @@ IsMouseAtCenterOfActiveWindow(tolerance=3) {
 		if inputing
 		return
 
-		if (!IsMouseAtCenterOfActiveWindow() || GetKeyState("Ctrl", "P"))
-		{
+		if (!IsMouseAtCenterOfActiveWindow() || GetKeyState("Ctrl", "P")) {
 			WinGetPos, X, Y, Width, Height, ahk_exe StarRail.exe
+			MouseGetPos, mouseX, mouseY
+			BlockInput Mouse
 			MouseMove Width - 110, (Height * 0.89)
 			Click
-			Sleep 20
-		}
-		else
-		{
-			while (toggle_F && GetKeyState("F", "P") && WinActive("ahk_exe StarRail.exe"))
-			{
+			MouseMove %mouseX%, %mouseY%
+			BlockInput Off
+
+		} else {
+			while (toggle_F && GetKeyState("F", "P") && WinActive("ahk_exe StarRail.exe")) {
+			
 				SendInput, {f}
 				Sleep, 10
 			}
