@@ -53,6 +53,9 @@ GroupAdd, genshin, ahk_exe YuanShen.exe
 GroupAdd, genshin, ahk_exe GenshinImpact.exe
 GroupAdd, genshin, ahk_exe Genshin Impact Cloud Game.exe
 
+GroupAdd, QQchannel, QQ频道
+GroupAdd, QQchannel, 图片查看器
+
 ;============================================
 ; 防止热键过于频繁而触发提醒
 ;============================================
@@ -79,9 +82,9 @@ toggle_F := 1
 ;空格连发初始状态
 toggle_space := 1
 ;私人功能开关（快捷输入uid）
-privates := 0
+privates := 1
 ;蓄力-R-闪避功能初始状态
-toggle_mouseright := 1
+toggle_mouseright := 0
 
 ;使MouseMove即时完成
 SetDefaultMouseSpeed, 1
@@ -94,7 +97,7 @@ RemoveToolTip() {
 	return
 }
 
-echo(text, timeout = 1000, positions = "random") {
+echo(text, timeout = 1000, positions = "top random center") {
 
 	WinGetPos, winX, winY, Width, Height, A
 
@@ -132,6 +135,17 @@ echo(text, timeout = 1000, positions = "random") {
 }
 
 ;============================================
+; 检查某处像素的值
+;============================================
+CheckPixelColor(TargetColor, x, y) {
+    ; 获取指定坐标的像素颜色
+    PixelGetColor, ScreenColor, %x%, %y%
+    ; ToolTip, screen %ScreenColor% target %TargetColor%
+    ; 比较颜色是否相同
+    return ScreenColor = TargetColor
+}
+
+;============================================
 ; 检测光标是否位于屏幕中心以判断战斗状态 tolerance：容错像素
 ;============================================
 IsMouseAtCenterOfActiveWindow(tolerance = 3) {
@@ -151,6 +165,22 @@ IsMouseAtCenterOfActiveWindow(tolerance = 3) {
 	return Abs(mouseX - centerX) <= tolerance && Abs(mouseY - centerY) <= tolerance
 }
 
+;============================================
+; 检查剪切板内容是否为图片
+;============================================
+IsClipboardImage() {
+    ; 打开剪贴板
+    r := DllCall("OpenClipboard", "ptr", A_ScriptHwnd)
+    
+    ; 获取剪贴板中的数据格式
+    formats := DllCall("IsClipboardFormatAvailable", "uint", 0x8, "uint")
+    
+    ; 关闭剪贴板
+    r := DllCall("CloseClipboard")
+    
+    ; 判断是否包含图片格式
+    Return formats
+}
 
 #IfWinActive, ahk_group genshin
 
@@ -168,20 +198,38 @@ IsMouseAtCenterOfActiveWindow(tolerance = 3) {
 
 	return
 
+	MakeTeleport() {
+		WinGetPos, X, Y, Width, Height, ahk_group genshin
+		MouseGetPos, mouseX, mouseY
+		BlockInput On
+		MouseMove Width - 110, (Height * 0.93)
+		Click
+		MouseMove %mouseX%, %mouseY%
+		BlockInput Off
+	}
+
+	*^ESC::
+		SendInput {esc}
+		Sleep, 700
+		WinGetPos, X, Y, Width, Height, ahk_group genshin
+		MouseGetPos, mouseX, mouseY
+		BlockInput Mouse
+		MouseMove Width * 0.045, Height * 0.95
+		Click
+		Sleep, 20
+		MouseMove Width * 0.575, Height * 0.7
+		click
+		BlockInput Off
+	return
+
 	~$*F::
 		if inputing
 		return
 
 		if (!IsMouseAtCenterOfActiveWindow() || map_just_started) {
-			WinGetPos, X, Y, Width, Height, ahk_group genshin
-			if (!GetKeyState("LButton", "P")) {
-				MouseGetPos, mouseX, mouseY
-				BlockInput Mouse
-				MouseMove Width - 110, (Height * 0.92)
-				Click
-				MouseMove %mouseX%, %mouseY%
-				BlockInput Off
 
+			if (!GetKeyState("LButton", "P")) {
+				MakeTeleport()
 			}
 			Sleep 50
 		} else if (toggle_F) {
@@ -200,6 +248,57 @@ IsMouseAtCenterOfActiveWindow(tolerance = 3) {
 		}
 	return
 
+	SendMessage(text) {
+		SendInput {Enter}
+		Sleep, 100
+		SendInput {enter}
+		Sleep, 30
+		Clipboard := text
+		SendInput ^v{enter}
+		Sleep, 10
+		SendInput {esc}
+	}
+
+	~*^Numpad3::
+		if (!privates)
+		return
+		SendMessage("谢谢！！祝你身体健康")
+		Sleep, 10
+		SendInput, {f2}
+
+		WinGetPos, X, Y, Width, Height, ahk_group genshin
+		BlockInput Mouse
+		Sleep, 450
+		MouseGetPos, mouseX, mouseY
+		MouseMove Width * 0.865, Height * 0.96
+		click
+		MouseMove %mouseX%, %mouseY%
+		BlockInput off
+
+	return
+
+	~*^Numpad2::
+		if (!privates)
+		return
+		SendMessage("抬头能看到金鱼钩爪，可以快速上来")
+	return
+
+	~*^Numpad1::
+		if (!privates)
+		return
+
+		texts := [ "我们一个宿舍的，就打打三个精英怪，不会占用很多时间"]
+		len := texts.Length()
+		Random, idx, 1, %len%
+		SendMessage(texts[idx])
+	return
+
+	~*^Numpad4::
+		if (!privates)
+		return
+		SendMessage("在边上看戏就ok，我们应该可以淹死这个怪的")
+	return
+
 	;============================================
 	; 输入状态检测
 	;============================================
@@ -208,12 +307,12 @@ IsMouseAtCenterOfActiveWindow(tolerance = 3) {
 		echo("进入输入模式")
 	return
 
-	~*LButton::
+	~*LButton up::
 		if (inputing) {
 			Sleep, 300
 			if (IsMouseAtCenterOfActiveWindow()) {
 				inputing := 0
-				echo("进入输入模式")
+				echo("退出输入模式")
 			}
 		}
 		map_just_started := 0
@@ -250,6 +349,7 @@ IsMouseAtCenterOfActiveWindow(tolerance = 3) {
 		WinGetPos, X, Y, Width, Height, ahk_group genshin
 
 		if (GetKeyState("Ctrl", "P")) {
+			BlockInput Mouse
 			Sleep, 500
 
 			SendInput {wheeldown}
@@ -260,22 +360,32 @@ IsMouseAtCenterOfActiveWindow(tolerance = 3) {
 			Sleep, 1
 
 			
-			MouseMove Width * 0.5, (Height * 0.1)
-			click
+			if (!privates) {
+				MouseMove Width * 0.5, (Height * 0.1)
+				click
+			}
+			BlockInput off
+			if (privates && WinExist("ahk_group QQchannel"))
+				GroupActivate, QQchannel, r
+
 			return
 		}
 
 		if (GetKeyState("Shift", "P")) {
-			Sleep, 500
+			BlockInput Mouse
+			Sleep, 450
 			MouseGetPos, mouseX, mouseY
 			MouseMove Width * 0.865, Height * 0.96
 			click
 			MouseMove %mouseX%, %mouseY%
+			BlockInput off
 
 			return
 		}
 
 	return
+
+	*F3::F2
 
 
 	;============================================
@@ -301,7 +411,26 @@ IsMouseAtCenterOfActiveWindow(tolerance = 3) {
 	; 蓄力-R-闪避
 	;============================================
 	$*RButton::
-		if (!toggle_mouseright) {
+
+		if ((!IsMouseAtCenterOfActiveWindow() || map_just_started)) {
+			BlockInput On
+			click
+			map_just_started := 0
+			sleep, 120
+
+			if (CheckPixelColor(0x66534A, Width - 110, Height * 0.93)) {
+				MakeTeleport()
+			} else {
+				WinGetPos, X, Y, Width, Height, ahk_group genshin
+				sleep, 300
+				MouseMove Width * 0.69, Height * 0.69
+				click
+				Sleep, 10
+				if (CheckPixelColor(0x66534A, Width - 110, Height * 0.93))
+					MakeTeleport()
+			}
+			BlockInput Off
+		} else if (!toggle_mouseright) {
 			SendInput, {RButton down}
 			return
 		}
@@ -372,7 +501,7 @@ IsMouseAtCenterOfActiveWindow(tolerance = 3) {
 
 		if (GetKeyState("Ctrl", "P")) {
 			SendInput, {RButton up}
-			Sleep, 10
+			Sleep, 1
 			SendInput, {RButton down}
 		} else {
 			SendInput, {RButton up}
@@ -395,7 +524,7 @@ IsMouseAtCenterOfActiveWindow(tolerance = 3) {
 
 			ctrlComboPressed := 1
 			TimerShift()
-			SetTimer, TimerShift, 800
+			SetTimer, TimerShift, 820
 		}
 	return
 
@@ -419,7 +548,7 @@ IsMouseAtCenterOfActiveWindow(tolerance = 3) {
 		WinGetPos, X, Y, Width, Height, ahk_group genshin
 		MouseMove Width * 0.87, (Height * 0.1)
 		Click
-		Sleep 70
+		Sleep 80
 		MouseMove Width * 0.87, (Height * 0.22)
 		Click
 		Sleep, 1
@@ -430,30 +559,12 @@ IsMouseAtCenterOfActiveWindow(tolerance = 3) {
 
 #IfWinActive
 
-IsClipboardImage() {
-    ; 打开剪贴板
-    r := DllCall("OpenClipboard", "ptr", A_ScriptHwnd)
-    
-    ; 获取剪贴板中的数据格式
-    formats := DllCall("IsClipboardFormatAvailable", "uint", 0x8, "uint")
-    
-    ; 关闭剪贴板
-    r := DllCall("CloseClipboard")
-    
-    ; 判断是否包含图片格式
-    Return formats
-}
-
-;============================================
-; [Win+C] OCR识别
-;============================================
-; #c:: OCR()
-
 ;============================================
 ; [Ctrl+S] 抢uid加入
 ;============================================
-#IfWinActive, QQ频道
+#IfWinActive, ahk_group QQchannel
 	*^S::
+
 		; 保留旧剪切板
 		clipboardOld := Clipboard
 		; 清空剪贴板
@@ -467,7 +578,7 @@ IsClipboardImage() {
 		Mappings := "①1 ②2 ③3 ④4 ⑤5 ⑥6 ⑦7 ⑧8 ⑨9 一1 二2 三3 四4 五5 六6 七7 八8 九9 零0 壹1 贰2 叁3 肆4 伍5 陆6 柒7 捌8 玖9"  ; 使用空格分隔映射对
 
 		; 输入字符串
-		OutputStr := Clipboard
+		outputStr := Clipboard
 
 		;============================================
 		; OCR图像识别功能，注释以切换功能
@@ -495,7 +606,7 @@ IsClipboardImage() {
 		; 将新字符串写入剪贴板
 		Clipboard := trim(outputStr)
 
-		echo(Clipboard)
+		echo(outputStr)
 
 		if (strlen(Clipboard) <> 9) {
 			echo(复制有误 %Clipboard%)
